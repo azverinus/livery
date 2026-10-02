@@ -1,0 +1,56 @@
+version: 1
+
+defines:
+  ENV:
+    values: [dev, staging, production]
+    default: staging
+  BUILD_TAG:
+
+config:
+  common:
+    APP_NAME: Demo App
+    api:
+      url: https://api.example.com/v1?lang=en&debug=1
+      timeout: 30
+      ratio: 1.5
+    feature_flags: [search, offline]
+  ios:
+    PRODUCT_BUNDLE_IDENTIFIER: com.example.demo
+    "com.example.dotted": kept apart
+    KEYCHAIN_PATH: C:\keys\release.jks
+    LEADING: " starts with a space"
+    QUOTED: say "hi" it's fine
+    DOLLAR: $(PRODUCT_NAME) costs $5
+    SLASHES: a///b
+    EMPTY: ""
+    NONE: null
+  shell:
+    multiline: "first line\nsecond line"
+    leading: " starts with a space"
+    quoted: say "hi" it's fine
+    dollar: $HOME $(id) `id`
+    path: C:\keys\release.jks
+    plain: https://api.example.com/v1
+
+outputs:
+  ios:
+    format: xcconfig
+    merge: [common, ios]
+    include_defines: true
+    files: ios/Flutter/livery.xcconfig
+  shell:
+    format: env
+    merge: [common, shell]
+    include_defines: true
+    files: [.env, tool/livery.env]
+  summary:
+    format: json
+    merge: [common, shell]
+    include_defines: true
+    files: build/livery.json
+  flat_summary:
+    format: json
+    merge: [common]
+    flatten: true
+    separator: .
+    files: build/livery.flat.json

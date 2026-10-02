@@ -1,0 +1,19 @@
+{
+  "APP_NAME": "Demo App",
+  "api": {
+    "url": "https://api.example.com/v1?lang=en&debug=1",
+    "timeout": 30,
+    "ratio": 1.5
+  },
+  "feature_flags": [
+    "search",
+    "offline"
+  ],
+  "multiline": "first line\nsecond line",
+  "leading": " starts with a space",
+  "quoted": "say \"hi\" it's fine",
+  "dollar": "$HOME $(id) `id`",
+  "path": "C:\\keys\\release.jks",
+  "plain": "https://api.example.com/v1",
+  "ENV": "staging"
+}
