@@ -1,0 +1,8 @@
+# Agent-only files: never published.
+/.claude/
+/.scratch/
+/docs/
+/AGENTS.md
+/CLAUDE.md
+/CONTEXT.md
+/CONTEXT-MAP.md
