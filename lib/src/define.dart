@@ -70,14 +70,17 @@ class Define {
         throw LiveryException('missing required define `$name`${values == null ? '' : ' (one of $allowed)'}');
       }
 
-      return ResolvedDefine(name: name, value: null);
+      return _resolved(null);
     }
     if (!accepts(value)) {
       throw LiveryException('define `$name` has invalid value `$value`, expected one of $allowed');
     }
 
-    return ResolvedDefine(name: name, value: value);
+    return _resolved(value);
   }
+
+  ResolvedDefine _resolved(String? value) =>
+      ResolvedDefine(name: name, value: value, values: values, defaultValue: defaultValue, dartClass: dartClass);
 
   /// Whether [value] is one of [values], or any value for a free-form define.
   bool accepts(String value) => values?.contains(value) ?? true;

@@ -1,0 +1,45 @@
+version: 1
+
+defines:
+  ENV:
+    values: [dev, staging, production]
+    default: dev
+  EDGE:
+    values: [default, value, current, hashCode, 1st, "it's", "$x", a\b]
+    dart_class: Edge
+  BUILD_TAG:
+  CHANNEL:
+    default: beta
+
+config:
+  common:
+    app_name: Demo App
+    api:
+      url: https://api.example.com/v1?lang=en&debug=1
+      timeout: 30
+      ratio: 1.5
+      retry_factor: 2.0
+    min_balance: -5
+    debug: true
+  dart:
+    class: keyword
+    hash_code: object member
+    2fa_enabled: false
+    tricky: "it's $HOME \\ \"quoted\"\n\ttabbed"
+
+overrides:
+  - when: {ENV: production}
+    set:
+      common:
+        api: {url: https://api.example.com/v1}
+        debug: false
+
+outputs:
+  app:
+    format: dart
+    merge: [common, dart]
+    files: lib/src/app_config.g.dart
+  defines:
+    format: dart
+    class_name: Defines
+    files: lib/src/defines.g.dart
