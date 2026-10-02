@@ -4,9 +4,7 @@
     ".": {
       "release-type": "dart",
       "package-name": "livery",
-      "initial-version": "0.1.0",
-      "bump-minor-pre-major": true,
-      "bump-patch-for-minor-pre-major": true,
+      "initial-version": "1.0.0",
       "include-component-in-tag": false
     }
   }
