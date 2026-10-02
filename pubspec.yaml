@@ -2,6 +2,12 @@ name: livery
 description: Declarative build-time config for Flutter apps. One YAML manifest generates native config files for Xcode and Gradle, and typed code.
 version: 0.0.0
 repository: https://github.com/azverinus/livery
+topics:
+  - flutter
+  - configuration
+  - code-generation
+  - build-tool
+  - cli
 
 environment:
   sdk: ^3.7.0

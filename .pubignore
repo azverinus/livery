@@ -1,0 +1,20 @@
+# Replaces the root .gitignore for `dart pub publish`, so it repeats every rule
+# there that matters for the package. The example's own .gitignore files still
+# apply and keep its build output and generated files out.
+
+# Agent-only files: never published.
+/.claude/
+/.scratch/
+/docs/
+/AGENTS.md
+/CLAUDE.md
+/CONTEXT.md
+/CONTEXT-MAP.md
+
+# Dart tooling.
+.dart_tool/
+/build/
+/pubspec.lock
+
+# Release tooling.
+/release-please-config.json

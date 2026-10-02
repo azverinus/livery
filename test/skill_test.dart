@@ -4,6 +4,7 @@ import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 import 'package:yaml/yaml.dart';
 
+import 'support/markdown.dart';
 import 'support/test_project.dart';
 
 const _skillDir = 'skills/livery-setup';
@@ -53,7 +54,7 @@ android/livery/build/''',
 
 void main() {
   final skill = File(p.join(_skillDir, 'SKILL.md')).readAsStringSync();
-  final skillCode = _codeBlocks(skill).join('\n');
+  final skillCode = codeBlocks(skill).join('\n');
 
   test('SKILL.md has Agent Skills frontmatter named after its pub skills directory', () {
     final match = RegExp(r'^---\n([\s\S]*?)\n---\n').firstMatch(skill);
@@ -78,7 +79,7 @@ void main() {
 
   test('every complete manifest in the skill generates', () {
     final manifests =
-        _codeBlocks(
+        codeBlocks(
           skill,
         ).where((block) => block.startsWith('# livery.yaml\n') && block.contains('\nversion: 1\n')).toList();
     expect(manifests, isNotEmpty);
@@ -90,16 +91,3 @@ void main() {
     }
   });
 }
-
-/// The contents of the fenced code blocks in [markdown], each with the
-/// indentation of its fence removed, as in a list item.
-List<String> _codeBlocks(String markdown) =>
-    RegExp(r'^( *)```\w*\n([\s\S]*?)^\1```', multiLine: true).allMatches(markdown).map((match) {
-      final indent = match.group(1)!;
-
-      return match
-          .group(2)!
-          .split('\n')
-          .map((line) => line.startsWith(indent) ? line.substring(indent.length) : line)
-          .join('\n');
-    }).toList();
