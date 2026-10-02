@@ -1,0 +1,2 @@
+dev: [-D, SIGNING=debug]
+production: [-D, ENV=production, -D, BUILD_TAG=nightly, -D, FLAVOR=paid, -D, SIGNING=release]

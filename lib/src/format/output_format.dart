@@ -56,6 +56,7 @@ class ResolvedDefine {
     required this.value,
     required this.values,
     required this.defaultValue,
+    required this.required,
     required this.dartClass,
   });
 
@@ -67,6 +68,9 @@ class ResolvedDefine {
 
   /// Declared default, or `null` when the define has none.
   final String? defaultValue;
+
+  /// Whether the define is declared `required`.
+  final bool required;
 
   /// Declared `dart_class`, or `null` when the define sets none.
   final String? dartClass;

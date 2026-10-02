@@ -1,0 +1,60 @@
+version: 1
+
+defines:
+  ENV:
+    values: [dev, staging, production]
+    default: dev
+  FLAVOR: [free, paid]
+  store-channel:
+    values: [app-store, playStore, 1st]
+    default: playStore
+  BUILD_TAG:
+  CHANNEL:
+    default: beta
+  SIGNING:
+    required: true
+  UNUSED: []
+
+config:
+  common:
+    app_name: Demo App
+    version_code: 42
+  android:
+    app_id: com.example.demo
+    app_id_suffix: .dev
+    minify: false
+    api:
+      url: https://api.example.com/v1?lang=en&debug=1
+      timeout: 30
+      ratio: 1.5
+      retryFactor: 2.0
+    min_balance: -5
+    int_max: 2147483647
+    int_min: -2147483648
+    big_double: 1e21
+    tiny_double: -1.5e-7
+    2fa_enabled: true
+    "dotted.key": dotted
+    tricky: "it's $HOME \\ \"quoted\"\n\r\ttabbed\u0001\u007f\u0085 é"
+
+overrides:
+  - when: {ENV: production}
+    set:
+      android:
+        app_id_suffix: ""
+        minify: true
+
+outputs:
+  android:
+    format: kotlin
+    merge: [common, android]
+    files: android/livery/src/main/kotlin/LiveryConfig.kt
+  defines:
+    format: kotlin
+    merge: []
+    files: android/livery/src/main/kotlin/Defines.kt
+  empty:
+    format: kotlin
+    merge: []
+    include_defines: false
+    files: android/livery/src/main/kotlin/Empty.kt

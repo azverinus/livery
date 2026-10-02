@@ -79,8 +79,14 @@ class Define {
     return _resolved(value);
   }
 
-  ResolvedDefine _resolved(String? value) =>
-      ResolvedDefine(name: name, value: value, values: values, defaultValue: defaultValue, dartClass: dartClass);
+  ResolvedDefine _resolved(String? value) => ResolvedDefine(
+    name: name,
+    value: value,
+    values: values,
+    defaultValue: defaultValue,
+    required: required,
+    dartClass: dartClass,
+  );
 
   /// Whether [value] is one of [values], or any value for a free-form define.
   bool accepts(String value) => values?.contains(value) ?? true;

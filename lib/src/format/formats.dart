@@ -1,6 +1,7 @@
 import 'dart_format.dart';
 import 'env_format.dart';
 import 'json_format.dart';
+import 'kotlin_format.dart';
 import 'output_format.dart';
 import 'properties_format.dart';
 import 'xcconfig_format.dart';
@@ -13,6 +14,7 @@ final Map<String, OutputFormat<Object?>> formats = <String, OutputFormat<Object?
     EnvFormat(),
     JsonFormat(),
     DartFormat(),
+    KotlinFormat(),
   ])
     format.id: format,
 };
