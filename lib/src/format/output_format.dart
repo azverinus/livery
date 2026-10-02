@@ -119,6 +119,9 @@ class BoundFormat<O> {
   final OutputFormat<O> format;
   final O options;
 
+  /// The value of the output's `format` key.
+  String get id => format.id;
+
   String render({
     required List<ConfigEntry> entries,
     required List<ResolvedDefine> defines,

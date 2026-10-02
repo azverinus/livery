@@ -69,6 +69,13 @@ class CliRunner {
           help: 'Encoded dart-defines as the Flutter tool passes them. Wins over \$$dartDefinesVariable.',
           valueHelp: 'base64,...',
         )
+        ..addMultiOption(
+          'only',
+          help: 'Generate only this output, repeatable. Every output is still checked.',
+          valueHelp: 'output',
+        )
+        ..addFlag('dry-run', negatable: false, help: 'Print what would be generated instead of writing files.')
+        ..addFlag('verbose', abbr: 'v', negatable: false, help: 'Report the resolved defines and every file written.')
         ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this help.');
 
   /// Runs the command and returns its exit code.
@@ -108,13 +115,61 @@ class CliRunner {
         dartDefinesFlag: options.option('dart-defines'),
         assignments: assignments,
       );
-      write(generate(manifest, defineInput: defineInput));
+      final generation = generate(manifest, defineInput: defineInput, only: options.multiOption('only').toSet());
+      final dryRun = options.flag('dry-run');
+      final verbose = options.flag('verbose');
+      if (dryRun || verbose) {
+        _reportResolved(manifest, generation);
+      }
+      if (dryRun) {
+        _printFiles(manifest, generation.files);
+
+        return success;
+      }
+
+      final written = write(generation.files);
+      if (verbose) {
+        _reportWritten(manifest, generation.files, written: written);
+      }
 
       return success;
     } on LiveryException catch (error) {
       _err.writeln('livery: $error');
 
       return failure;
+    }
+  }
+
+  /// Prints the manifest, the defines that have a value and the config file
+  /// the generation read.
+  void _reportResolved(Manifest manifest, Generation generation) {
+    final defines = <String>[
+      for (final define in generation.defines)
+        if (define.value case final value?) '${define.name}=$value',
+    ];
+    _out
+      ..writeln('manifest: ${manifest.path}')
+      ..writeln('defines:  ${defines.isEmpty ? '(none)' : defines.join(' ')}');
+    if (generation.configFile case final configFile?) {
+      _out.writeln('config:   $configFile');
+    }
+  }
+
+  /// Prints every file's path, format and contents.
+  void _printFiles(Manifest manifest, List<GeneratedFile> files) {
+    for (final file in files) {
+      _out
+        ..writeln()
+        ..writeln('--- ${p.relative(file.path, from: manifest.rootDir)} (${file.format})')
+        ..write(file.contents);
+    }
+  }
+
+  /// Prints whether each file was [written] or left unchanged.
+  void _reportWritten(Manifest manifest, List<GeneratedFile> files, {required Set<String> written}) {
+    for (final file in files) {
+      final status = written.contains(file.path) ? 'wrote    ' : 'unchanged';
+      _out.writeln('$status ${p.relative(file.path, from: manifest.rootDir)}');
     }
   }
 

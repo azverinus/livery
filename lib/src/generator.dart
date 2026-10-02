@@ -10,19 +10,51 @@ import 'yaml_reader.dart';
 
 /// One file a generation is about to write.
 class GeneratedFile {
-  const GeneratedFile({required this.path, required this.contents});
+  const GeneratedFile({required this.path, required this.contents, required this.format});
 
   /// Absolute destination path.
   final String path;
   final String contents;
+
+  /// Id of the format the file is written in.
+  final String format;
+}
+
+/// What a generation resolved and is about to write.
+class Generation {
+  const Generation({required this.defines, required this.configFile, required this.files});
+
+  /// Every declared define, in declaration order, resolved or not.
+  final List<ResolvedDefine> defines;
+
+  /// Absolute path of the config file the generation read; `null` for inline
+  /// config.
+  final String? configFile;
+  final List<GeneratedFile> files;
 }
 
 /// Renders every output of [manifest] without touching the disk, with the
 /// defines resolved from [defineInput], the merged input of every source.
 ///
+/// A non-empty [only] keeps just the files of the outputs it names. Every
+/// output is still rendered, so it is checked whichever outputs are kept.
+///
 /// Everything that can fail on the manifest or the define input fails here, so
 /// a failed generation never leaves a half-written set of files behind.
-List<GeneratedFile> generate(Manifest manifest, {required Map<String, String> defineInput}) {
+Generation generate(
+  Manifest manifest, {
+  required Map<String, String> defineInput,
+  Set<String> only = const <String>{},
+}) {
+  final declared = <String>[for (final output in manifest.outputs) output.name];
+  final unknown = only.where((name) => !declared.contains(name)).toList()..sort();
+  if (unknown.isNotEmpty) {
+    throw LiveryException(
+      'unknown output ${unknown.map((name) => '`$name`').join(', ')}; declared outputs are ${declared.join(', ')}',
+      source: manifest.path,
+    );
+  }
+
   final defines = <ResolvedDefine>[];
   for (final define in manifest.defines) {
     try {
@@ -31,7 +63,7 @@ List<GeneratedFile> generate(Manifest manifest, {required Map<String, String> de
       throw error.located(source: manifest.path, path: 'defines.${define.name}');
     }
   }
-  final config = manifest.configSource.select(defines);
+  final (:config, file: configFile) = manifest.configSource.select(defines);
   final sections = config.resolve(defines);
   final files = <GeneratedFile>[];
   final firstWriter = <String, String>{};
@@ -59,16 +91,22 @@ List<GeneratedFile> generate(Manifest manifest, {required Map<String, String> de
         );
       }
       firstWriter[path] = location;
-      files.add(GeneratedFile(path: path, contents: contents));
+      if (only.isNotEmpty && !only.contains(output.name)) {
+        continue;
+      }
+      files.add(GeneratedFile(path: path, contents: contents, format: output.format.id));
     }
   }
 
-  return files;
+  return Generation(defines: defines, configFile: configFile, files: files);
 }
 
 /// Writes [files], leaving a file whose content is already up to date
 /// untouched so build systems do not see a spurious change.
-void write(List<GeneratedFile> files) {
+///
+/// Returns the paths it wrote.
+Set<String> write(List<GeneratedFile> files) {
+  final written = <String>{};
   for (final file in files) {
     final target = File(file.path);
     try {
@@ -81,7 +119,10 @@ void write(List<GeneratedFile> files) {
     } on FileSystemException catch (error) {
       throw LiveryException('cannot write ${file.path}: ${describeFileSystemError(error)}');
     }
+    written.add(file.path);
   }
+
+  return written;
 }
 
 /// The absolute path of [relative], which must stay inside the root.

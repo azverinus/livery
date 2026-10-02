@@ -8,6 +8,10 @@ import 'format/output_format.dart';
 import 'livery_exception.dart';
 import 'yaml_reader.dart';
 
+/// The config a generation uses, and the file it was read from; `null` for
+/// inline config.
+typedef SelectedConfig = ({Config config, String? file});
+
 /// Where a manifest's config comes from: inline `config` and `overrides`, one
 /// `config_file`, or one file per app through `apps` or `app_pattern`.
 ///
@@ -41,13 +45,24 @@ sealed class ConfigSource {
         throw manifest.error('`app_define` only applies with `apps` or `app_pattern`', at: 'app_define');
       }
 
-      final configFile = manifest.child('config_file');
+      if (source == 'config_file') {
+        final configFile = manifest.child('config_file');
+        final relative = configFile.asString();
 
-      return _Single(
-        source == 'config_file'
-            ? _loadFile(configFile.asString(), from: configFile, defines: defines)
-            : Config.parse(config: manifest.child('config'), overrides: manifest.child('overrides'), defines: defines),
-      );
+        return _Single((
+          config: _loadFile(relative, from: configFile, defines: defines),
+          file: _resolve(relative, from: configFile),
+        ));
+      }
+
+      return _Single((
+        config: Config.parse(
+          config: manifest.child('config'),
+          overrides: manifest.child('overrides'),
+          defines: defines,
+        ),
+        file: null,
+      ));
     }
 
     final appDefine = _appDefine(manifest, location: source!, defines: defines);
@@ -85,7 +100,7 @@ sealed class ConfigSource {
   ///
   /// With several apps, loads and checks every app first, so a broken app
   /// fails whichever app is built.
-  Config select(List<ResolvedDefine> defines);
+  SelectedConfig select(List<ResolvedDefine> defines);
 
   /// The app define: declared, with `values`, and never unresolved.
   static Define _appDefine(YamlReader manifest, {required String location, required List<Define> defines}) {
@@ -140,12 +155,12 @@ sealed class ConfigSource {
 
 /// One config, the same for every generation.
 final class _Single extends ConfigSource {
-  const _Single(this.config);
+  const _Single(this.selected);
 
-  final Config config;
+  final SelectedConfig selected;
 
   @override
-  Config select(List<ResolvedDefine> defines) => config;
+  SelectedConfig select(List<ResolvedDefine> defines) => selected;
 }
 
 /// Where an app's config file is: the manifest entry that names it, and its
@@ -168,7 +183,7 @@ final class _Apps extends ConfigSource {
   final Map<String, _App> apps;
 
   @override
-  Config select(List<ResolvedDefine> defines) {
+  SelectedConfig select(List<ResolvedDefine> defines) {
     final values = <String, String?>{for (final define in defines) define.name: define.value};
     // Every path first, so a bad pattern value fails before any file is read.
     final files = <String, String>{
@@ -179,8 +194,9 @@ final class _Apps extends ConfigSource {
         app: _loadFile(files[app]!, from: at, defines: declared),
     };
     _checkShapes(configs, files: files);
+    final app = values[appDefine]!;
 
-    return configs[values[appDefine]]!;
+    return (config: configs[app]!, file: _resolve(files[app]!, from: apps[app]!.at));
   }
 
   /// Fails unless every app has the keys and kinds of the first.
@@ -258,13 +274,17 @@ class _AppPattern {
   });
 }
 
+/// The absolute path of [relative], relative to the manifest that declares
+/// it at [from].
+String _resolve(String relative, {required YamlReader from}) => p.normalize(p.join(p.dirname(from.source), relative));
+
 /// Loads the config file at [relative], relative to the manifest that
 /// declares it at [from].
 ///
 /// The file holds only `config` and `overrides`, checked as inline config is.
 /// An empty file is more likely a mistake than an empty config, so it fails.
 Config _loadFile(String relative, {required YamlReader from, required List<Define> defines}) {
-  final path = p.normalize(p.join(p.dirname(from.source), relative));
+  final path = _resolve(relative, from: from);
   final String content;
   try {
     content = File(path).readAsStringSync();
