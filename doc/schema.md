@@ -47,6 +47,7 @@ livery uses the file passed with `--config`, or else looks for `livery.yaml` in 
 | `defines` | mapping | empty | The defines a run takes, see below. |
 | `dart_defines_file` | string | none | A `Generated.xcconfig` to read define values from, relative to `root`. See [Define sources](#define-sources). |
 | `config` | mapping | empty | Config sections, see below. |
+| `overrides` | list | empty | Values that replace config values for some define values, see below. |
 | `outputs` | mapping | required | The files to generate, see below. At least one output is required. |
 
 ### `root`
@@ -116,6 +117,74 @@ Each key of `config` is a **section**, a mapping of values that outputs merge. S
 
 Values can be nested to any depth. A value is a string, a number, a boolean, `null` or a list.
 
+### Value types
+
+Every config key has a value type, taken from how YAML reads its value in `config`:
+
+| YAML value | Value type | Examples |
+| --- | --- | --- |
+| string | string | `Demo`, `"42"`, `''` |
+| integer | int | `42`, `0x2A` |
+| float | double | `1.5`, `2.0`, `1e3` |
+| boolean | bool | `true`, `false` |
+| `null` or nothing | null | `null`, `~` |
+| list | list | `[a, b]` |
+| mapping | mapping | `{url: …}` |
+
+int and double are different types: `2` is an int and `2.0` a double.
+
+No override can change a key's value type, and a key that two merged sections both hold must have the same value type in both. So every combination of define values yields config of the same shape.
+
+YAML decides the type from how a value is written, not from what it means. Quote a value that must stay text:
+
+- `version_name: 1.10` is the double `1.1`; write `"1.10"`.
+- `build: 007` is the int `7`, leading zeros dropped; write `"007"`.
+- `country: NO` is a string, but `enabled: yes` is too: only `true` and `false` are booleans.
+
+## `overrides`
+
+An **override** replaces config values when the defines have certain values. Each entry of the `overrides` list has a selector, `when`, and the values to merge, `set`:
+
+```yaml
+defines:
+  ENV: {values: [dev, staging, production], default: dev}
+  FLAVOR: [free, paid]
+
+config:
+  common:
+    api_url: https://dev.example.com
+    ads: false
+
+overrides:
+  - when: {ENV: [staging, production]}
+    set:
+      common: {api_url: https://example.com}
+  - when: {ENV: production, FLAVOR: free}
+    set:
+      common: {ads: true}
+```
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `when` | mapping | empty | Define names to the values that select the override. |
+| `set` | mapping | empty | Values merged over the config, keyed by section like `config`. |
+
+How `when` selects:
+
+- A selector value is one define value or a list of them. A list matches any of its values. Define values are strings, so quote one that YAML would read as a number or a boolean: `{BUILD: "2"}`.
+- Selectors on several defines must all match.
+- An empty or missing `when` matches every run.
+- A define with no value matches no selector.
+
+Every override whose selector matches is merged over `config`, in the order the overrides are listed, so a later one wins. Nested mappings merge key by key; any other value, lists included, is replaced whole.
+
+Rules for overrides, checked for every override on every run, whether its selector matches or not:
+
+- A selector must name a declared define, and its values must be among the define's `values`. Names and values are matched exactly, so `env` or `Production` fails for the `ENV` above.
+- A selector must list at least one value.
+- Every key in `set` must exist in `config`, so a misspelt key fails instead of adding a stray one.
+- Every value in `set` must have the value type of the key it replaces. The error lists every offending key, and suggests the spelling where YAML is to blame: `2` over `1.5` suggests `2.0`.
+
 ## `outputs`
 
 Each key of `outputs` names one output: the sections it merges, the format it is written in and the files it is written to.
@@ -132,7 +201,7 @@ outputs:
 
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `merge` | list of strings | the section named after the output | Sections merged left to right. Nested mappings merge key by key; any other value, lists included, is replaced by a later section. |
+| `merge` | list of strings | the section named after the output | Sections merged left to right, after the overrides are applied. Nested mappings merge key by key; any other value, lists included, is replaced by a later section. |
 | `format` | string | `properties` | How the output is written. See [Formats](#formats). |
 | `files` | string or list of strings | required | Destination paths, relative to `root`. Every file gets the same content. |
 | `include_defines` | bool | per format | Include the resolved defines in the output. Each format renders them its own way, listed with the format. |
@@ -142,6 +211,7 @@ A format can accept further keys, listed with the format.
 Rules for outputs:
 
 - Every section in `merge` must exist in `config`.
+- A key that two sections in `merge` both hold must have the same value type in both.
 - A path in `files` must be relative and must stay inside `root`, also after `..` segments are resolved.
 - Two outputs, or two entries of one output, cannot write the same path.
 

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
+import 'config.dart';
 import 'format/output_format.dart';
 import 'livery_exception.dart';
 import 'manifest.dart';
@@ -30,13 +31,14 @@ List<GeneratedFile> generate(Manifest manifest, {required Map<String, String> de
       throw error.located(source: manifest.path, path: 'defines.${define.name}');
     }
   }
+  final sections = manifest.config.resolve(defines);
   final files = <GeneratedFile>[];
   final firstWriter = <String, String>{};
   for (final output in manifest.outputs) {
     final String contents;
     try {
       contents = output.format.render(
-        entries: _entries(manifest, output),
+        entries: _entries(manifest.config.sections, sections, output),
         defines: defines,
         includeDefines: output.includeDefines,
       );
@@ -103,39 +105,46 @@ String _confine(String relative, {required Manifest manifest, required String lo
   return path;
 }
 
-/// The sections [output] merges, deep-merged left to right and flattened to
+/// The [sections] [output] merges, deep-merged left to right and flattened to
 /// leaves.
-List<ConfigEntry> _entries(Manifest manifest, Output output) {
+///
+/// A key that two of the sections hold must have the same kind in both. The
+/// check reads the [base] sections, so its outcome never depends on the
+/// defines; overrides cannot change a kind.
+List<ConfigEntry> _entries(Map<String, YamlTree> base, Map<String, YamlTree> sections, Output output) {
   final merged = <String, Object?>{};
+  final firstSeen = <String, (ValueKind, String)>{};
   for (final name in output.merge) {
-    final section = manifest.config[name];
+    final section = sections[name];
     if (section == null) {
       throw LiveryException('output `${output.name}` merges section `$name`, which the config does not define');
     }
-    _deepMerge(merged, section);
+
+    for (final (path, kind) in _kinds(base[name]!, const <String>[])) {
+      final dotted = dottedPath(path);
+      final (firstKind, firstSection) = firstSeen.putIfAbsent(dotted, () => (kind, name));
+      if (firstKind != kind) {
+        throw LiveryException(
+          '`$dotted` is ${firstKind.described} in section `$firstSection` but ${kind.described} in section `$name`',
+        );
+      }
+    }
+    deepMerge(merged, section);
   }
 
   return <ConfigEntry>[..._flatten(merged, const <String>[])];
 }
 
-/// Merges [overlay] into [target]: mappings merge key by key, anything else,
-/// lists included, is replaced.
-void _deepMerge(YamlTree target, YamlTree overlay) {
-  for (final MapEntry(:key, :value) in overlay.entries) {
-    final current = target[key];
-    if (current is YamlTree && value is YamlTree) {
-      _deepMerge(current, value);
-    } else {
-      target[key] = value is YamlTree ? _copy(value) : value;
+/// The key path and kind of every value in [tree], mappings included, parents
+/// before their children.
+Iterable<(List<String>, ValueKind)> _kinds(YamlTree tree, List<String> prefix) sync* {
+  for (final MapEntry(:key, :value) in tree.entries) {
+    final path = <String>[...prefix, key];
+    yield (path, valueKindOf(value));
+    if (value is YamlTree) {
+      yield* _kinds(value, path);
     }
   }
-}
-
-YamlTree _copy(YamlTree tree) {
-  final copy = <String, Object?>{};
-  _deepMerge(copy, tree);
-
-  return copy;
 }
 
 Iterable<ConfigEntry> _flatten(YamlTree tree, List<String> prefix) sync* {
@@ -144,17 +153,7 @@ Iterable<ConfigEntry> _flatten(YamlTree tree, List<String> prefix) sync* {
     if (value is YamlTree) {
       yield* _flatten(value, path);
     } else {
-      yield ConfigEntry(path: path, kind: _kindOf(value), value: value);
+      yield ConfigEntry(path: path, kind: valueKindOf(value), value: value);
     }
   }
 }
-
-ValueKind _kindOf(Object? value) => switch (value) {
-  null => ValueKind.none,
-  String() => ValueKind.string,
-  int() => ValueKind.int,
-  double() => ValueKind.double,
-  bool() => ValueKind.bool,
-  List<Object?>() => ValueKind.list,
-  _ => throw StateError('YAML produced an unexpected ${value.runtimeType}'),
-};

@@ -9,7 +9,7 @@ void main() {
   final fixtures =
       Directory(goldensDir).listSync().whereType<Directory>().map((dir) => p.basename(dir.path)).toList()..sort();
 
-  for (final name in fixtures) {
-    test('golden tree: $name', () => expectGoldenTree(name));
+  for (final run in fixtures.expand(goldenRuns)) {
+    test('golden tree: ${run.description}', () => expectGoldenRun(run));
   }
 }

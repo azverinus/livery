@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
+import 'config.dart';
 import 'define.dart';
 import 'format/formats.dart';
 import 'format/output_format.dart';
@@ -48,12 +49,14 @@ class Manifest {
     final rootDir = explicitRoot ?? p.normalize(p.join(p.dirname(path), root));
     final dartDefinesFile = reader.child('dart_defines_file').asStringOrNull();
 
+    final defines = _parseDefines(reader.child('defines'));
+
     return Manifest._(
       path: path,
       rootDir: rootDir,
-      defines: _parseDefines(reader.child('defines')),
+      defines: defines,
       dartDefinesFile: dartDefinesFile == null ? null : p.normalize(p.join(rootDir, dartDefinesFile)),
-      config: _parseConfig(reader.child('config')),
+      config: Config.parse(config: reader.child('config'), overrides: reader.child('overrides'), defines: defines),
       outputs: _parseOutputs(reader.child('outputs')),
     );
   }
@@ -61,7 +64,7 @@ class Manifest {
   static const fileName = 'livery.yaml';
   static const supportedVersion = 1;
 
-  static const _keys = <String>{'version', 'root', 'defines', 'dart_defines_file', 'config', 'outputs'};
+  static const _keys = <String>{'version', 'root', 'defines', 'dart_defines_file', 'config', 'overrides', 'outputs'};
 
   /// Absolute path of the manifest file.
   final String path;
@@ -76,8 +79,8 @@ class Manifest {
   /// first, or `null` when the manifest names none.
   final String? dartDefinesFile;
 
-  /// Section name to section contents.
-  final Map<String, YamlTree> config;
+  /// The base config sections and their overrides.
+  final Config config;
   final List<Output> outputs;
 
   /// The nearest [fileName] in [directory] or one of its parents.
@@ -100,14 +103,6 @@ class Manifest {
   static List<Define> _parseDefines(YamlReader reader) => <Define>[
     for (final name in reader.asMap().keys) Define.parse(name, reader.child(name)),
   ];
-
-  static Map<String, YamlTree> _parseConfig(YamlReader reader) => <String, YamlTree>{
-    for (final name in reader.asMap().keys)
-      name: switch (reader.child(name)) {
-        final section when section.node is YamlTree => section.asMap(),
-        final section => throw section.error('a config section must be a mapping'),
-      },
-  };
 
   static List<Output> _parseOutputs(YamlReader reader) {
     final names = reader.asMap().keys;

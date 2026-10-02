@@ -39,8 +39,8 @@ class Define {
     );
 
     final fallback = define.defaultValue;
-    if (fallback != null && !define._accepts(fallback)) {
-      throw reader.error('default `$fallback` is not one of ${define._allowed}', at: 'default');
+    if (fallback != null && !define.accepts(fallback)) {
+      throw reader.error('default `$fallback` is not one of ${define.allowed}', at: 'default');
     }
 
     return define;
@@ -67,19 +67,22 @@ class Define {
     final value = given == null || given.isEmpty ? defaultValue : given;
     if (value == null) {
       if (required) {
-        throw LiveryException('missing required define `$name`${values == null ? '' : ' (one of $_allowed)'}');
+        throw LiveryException('missing required define `$name`${values == null ? '' : ' (one of $allowed)'}');
       }
 
       return ResolvedDefine(name: name, value: null);
     }
-    if (!_accepts(value)) {
-      throw LiveryException('define `$name` has invalid value `$value`, expected one of $_allowed');
+    if (!accepts(value)) {
+      throw LiveryException('define `$name` has invalid value `$value`, expected one of $allowed');
     }
 
     return ResolvedDefine(name: name, value: value);
   }
 
-  bool _accepts(String value) => values?.contains(value) ?? true;
+  /// Whether [value] is one of [values], or any value for a free-form define.
+  bool accepts(String value) => values?.contains(value) ?? true;
 
-  String get _allowed => values!.join(', ');
+  /// The accepted values, as an error message lists them. Only for a define
+  /// that declares [values].
+  String get allowed => values!.join(', ');
 }

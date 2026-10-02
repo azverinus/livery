@@ -61,6 +61,21 @@ class YamlReader {
     return value;
   }
 
+  /// A reader for each item of this list, or none when the node is empty.
+  List<YamlReader> asList() {
+    final value = node;
+    if (value == null) {
+      return const <YamlReader>[];
+    }
+    if (value is! List<Object?>) {
+      throw error('expected a list, got ${_describe(value)}');
+    }
+
+    return <YamlReader>[
+      for (final (index, item) in value.indexed) YamlReader(item, source: source, path: '$path[$index]'),
+    ];
+  }
+
   /// Accepts a bare string as well as a list of strings, always returning a
   /// list, so `files: a.txt` works like `files: [a.txt]`.
   List<String> asStringList() {

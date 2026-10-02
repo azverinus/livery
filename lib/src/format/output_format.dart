@@ -1,7 +1,38 @@
 import '../yaml_reader.dart';
 
 /// Kind of a config value, as it came out of YAML.
-enum ValueKind { string, int, double, bool, none, list }
+///
+/// A config entry is a leaf, so it is never a [map]; mappings only take part
+/// in the checks that keep a key's kind the same everywhere.
+enum ValueKind {
+  string('a string'),
+  int('an int'),
+  double('a double'),
+  bool('a bool'),
+  none('null'),
+  list('a list'),
+  map('a mapping');
+
+  const ValueKind(this.described);
+
+  /// The kind as an error message names it.
+  final String described;
+}
+
+/// The kind of [value], one of the values a [YamlTree] holds.
+ValueKind valueKindOf(Object? value) => switch (value) {
+  null => ValueKind.none,
+  String() => ValueKind.string,
+  int() => ValueKind.int,
+  double() => ValueKind.double,
+  bool() => ValueKind.bool,
+  List<Object?>() => ValueKind.list,
+  YamlTree() => ValueKind.map,
+  _ => throw StateError('YAML produced an unexpected ${value.runtimeType}'),
+};
+
+/// [path] as a dotted key path, quoting a segment that holds a dot itself.
+String dottedPath(List<String> path) => path.map((segment) => segment.contains('.') ? '"$segment"' : segment).join('.');
 
 /// One leaf of the config an output merges, with its full key path.
 ///

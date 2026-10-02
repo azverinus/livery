@@ -1,0 +1,4 @@
+dev: []
+staging: [-D, ENV=staging, -D, FLAVOR=paid]
+production-free: [-D, ENV=production, -D, FLAVOR=free]
+production-paid: [-D, ENV=production, -D, FLAVOR=paid]

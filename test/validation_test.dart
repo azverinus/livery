@@ -32,8 +32,21 @@ overides: []
       expect(
         result.err,
         'livery: ${project.path('livery.yaml')}: [overides] unknown key `overides`, '
-        'accepted keys are config, dart_defines_file, defines, outputs, root, version\n',
+        'accepted keys are config, dart_defines_file, defines, outputs, overrides, root, version\n',
       );
+    });
+
+    test('strict is an unknown manifest key', () {
+      final err = _fail('''
+version: 1
+strict: false
+config:
+  android: {a: b}
+outputs:
+  android: {files: [out.properties]}
+''');
+
+      expect(err, contains('[strict] unknown key `strict`'));
     });
 
     test('an unknown output key fails, naming the output path and the keys its format accepts', () {

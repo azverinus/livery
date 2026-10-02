@@ -1,0 +1,43 @@
+version: 1
+
+defines:
+  ENV: {values: [dev, staging, production], default: dev}
+  FLAVOR: [free, paid]
+
+config:
+  common:
+    app_name: Demo
+    api:
+      url: https://dev.example.com
+      timeout: 30
+      retry_backoff: 1.5
+    hosts: [dev.example.com, cdn.dev.example.com]
+  android:
+    app_suffix: .dev
+    ads: false
+
+overrides:
+  - when: {ENV: [staging, production]}
+    set:
+      common:
+        api: {timeout: 10, retry_backoff: 2.0}
+  - when: {ENV: staging}
+    set:
+      common:
+        api: {url: https://staging.example.com}
+      android: {app_suffix: .staging}
+  - when: {ENV: production}
+    set:
+      common:
+        api: {url: https://example.com}
+        hosts: [example.com]
+      android: {app_suffix: ""}
+  - when: {ENV: production, FLAVOR: free}
+    set:
+      android: {ads: true}
+
+outputs:
+  android:
+    merge: [common, android]
+    include_defines: true
+    files: android/livery.properties
