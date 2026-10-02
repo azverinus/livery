@@ -1,0 +1,12 @@
+version: 1
+
+defines:
+  ENV: {values: [dev, production], default: dev}
+
+config_file: config/app.yaml
+
+outputs:
+  android:
+    merge: [common, android]
+    include_defines: true
+    files: android/livery.properties

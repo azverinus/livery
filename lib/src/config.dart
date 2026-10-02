@@ -35,8 +35,8 @@ class Config {
 
     final problems = <String>[
       for (final override in result.overrides)
-        for (final problem in _shapeProblems(result.sections, override.set, const <String>[]))
-          '  ${override.location}: $problem',
+        for (final difference in shapeDifferences(result.sections, override.set))
+          if (_problem(difference) case final problem?) '  ${override.location}: $problem',
     ];
     if (problems.isNotEmpty) {
       throw overrides.error(
@@ -67,26 +67,17 @@ class Config {
     return <String, YamlTree>{for (final MapEntry(:key, :value) in resolved.entries) key: value! as YamlTree};
   }
 
-  /// Why [overlay], found at [path], cannot be merged over [base]: each key
-  /// must exist in [base] with a value of the same kind.
-  static Iterable<String> _shapeProblems(YamlTree base, YamlTree overlay, List<String> path) sync* {
-    for (final MapEntry(:key, :value) in overlay.entries) {
-      final keyPath = <String>[...path, key];
-      if (!base.containsKey(key)) {
-        yield '`${dottedPath(keyPath)}` is not in the base config';
-        continue;
-      }
+  /// Why an override cannot set the key of [difference], or `null` when the
+  /// override merely leaves a base key alone.
+  static String? _problem(ShapeDifference difference) {
+    final key = '`${dottedPath(difference.path)}`';
 
-      final current = base[key];
-      final expected = valueKindOf(current);
-      final actual = valueKindOf(value);
-      if (expected != actual) {
-        yield '`${dottedPath(keyPath)}` is ${expected.described} in the base config, '
-            'got ${actual.described}${_hint(expected, value)}';
-      } else if (current is YamlTree && value is YamlTree) {
-        yield* _shapeProblems(current, value, keyPath);
-      }
-    }
+    return switch (difference) {
+      ShapeDifference(actual: null) => null,
+      ShapeDifference(expected: null) => '$key is not in the base config',
+      ShapeDifference(:final expected?, :final actual?, :final value) =>
+        '$key is ${expected.described} in the base config, got ${actual.described}${_hint(expected, value)}',
+    };
   }
 
   /// How to write [value] as [expected], where YAML makes that a matter of
@@ -160,6 +151,50 @@ class Override {
     }
 
     return values;
+  }
+}
+
+/// One key whose presence or kind differs between a base tree and another
+/// tree.
+class ShapeDifference {
+  const ShapeDifference({required this.path, required this.expected, required this.actual, required this.value});
+
+  final List<String> path;
+
+  /// The kind in the base tree, or `null` when the base lacks the key.
+  final ValueKind? expected;
+
+  /// The kind in the other tree, or `null` when it lacks the key.
+  final ValueKind? actual;
+
+  /// The value in the other tree.
+  final Object? value;
+}
+
+/// Where [other] differs from [base] in its keys or their kinds: base keys it
+/// lacks first, then its own keys in order.
+///
+/// A key whose kind differs is reported alone, without the keys below it.
+Iterable<ShapeDifference> shapeDifferences(
+  YamlTree base,
+  YamlTree other, [
+  List<String> path = const <String>[],
+]) sync* {
+  for (final MapEntry(:key, :value) in base.entries) {
+    if (!other.containsKey(key)) {
+      yield ShapeDifference(path: <String>[...path, key], expected: valueKindOf(value), actual: null, value: null);
+    }
+  }
+  for (final MapEntry(:key, :value) in other.entries) {
+    final keyPath = <String>[...path, key];
+    final current = base[key];
+    final expected = base.containsKey(key) ? valueKindOf(current) : null;
+    final actual = valueKindOf(value);
+    if (expected != actual) {
+      yield ShapeDifference(path: keyPath, expected: expected, actual: actual, value: value);
+    } else if (current is YamlTree && value is YamlTree) {
+      yield* shapeDifferences(current, value, keyPath);
+    }
   }
 }
 

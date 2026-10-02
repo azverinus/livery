@@ -1,0 +1,14 @@
+config:
+  common:
+    app_name: Demo
+    api:
+      url: https://dev.demo.example.com
+      timeout: 30
+  android:
+    app_id: com.example.demo
+
+overrides:
+  - when: {ENV: production}
+    set:
+      common:
+        api: {url: https://demo.example.com}

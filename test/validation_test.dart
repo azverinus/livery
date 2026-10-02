@@ -32,7 +32,8 @@ overides: []
       expect(
         result.err,
         'livery: ${project.path('livery.yaml')}: [overides] unknown key `overides`, '
-        'accepted keys are config, dart_defines_file, defines, outputs, overrides, root, version\n',
+        'accepted keys are app_define, app_pattern, apps, config, config_file, dart_defines_file, defines, outputs, '
+        'overrides, root, version\n',
       );
     });
 

@@ -1,0 +1,15 @@
+config:
+  common:
+    app_name: Demo
+    api:
+      url: https://dev.example.com
+  android:
+    app_id: com.example.demo
+    app_suffix: .dev
+
+overrides:
+  - when: {ENV: production}
+    set:
+      common:
+        api: {url: https://example.com}
+      android: {app_suffix: ""}

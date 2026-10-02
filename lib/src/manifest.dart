@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
-import 'config.dart';
+import 'config_source.dart';
 import 'define.dart';
 import 'format/formats.dart';
 import 'format/output_format.dart';
@@ -17,7 +17,7 @@ class Manifest {
     required this.rootDir,
     required this.defines,
     required this.dartDefinesFile,
-    required this.config,
+    required this.configSource,
     required this.outputs,
   });
 
@@ -56,7 +56,7 @@ class Manifest {
       rootDir: rootDir,
       defines: defines,
       dartDefinesFile: dartDefinesFile == null ? null : p.normalize(p.join(rootDir, dartDefinesFile)),
-      config: Config.parse(config: reader.child('config'), overrides: reader.child('overrides'), defines: defines),
+      configSource: ConfigSource.parse(reader, defines: defines),
       outputs: _parseOutputs(reader.child('outputs')),
     );
   }
@@ -64,7 +64,7 @@ class Manifest {
   static const fileName = 'livery.yaml';
   static const supportedVersion = 1;
 
-  static const _keys = <String>{'version', 'root', 'defines', 'dart_defines_file', 'config', 'overrides', 'outputs'};
+  static const _keys = <String>{'version', 'root', 'defines', 'dart_defines_file', ...ConfigSource.keys, 'outputs'};
 
   /// Absolute path of the manifest file.
   final String path;
@@ -79,8 +79,8 @@ class Manifest {
   /// first, or `null` when the manifest names none.
   final String? dartDefinesFile;
 
-  /// The base config sections and their overrides.
-  final Config config;
+  /// Where the config comes from.
+  final ConfigSource configSource;
   final List<Output> outputs;
 
   /// The nearest [fileName] in [directory] or one of its parents.

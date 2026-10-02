@@ -1,0 +1,14 @@
+config:
+  common:
+    app_name: Kiosk
+    api:
+      url: https://dev.kiosk.example.com
+      timeout: 60
+  android:
+    app_id: com.example.kiosk
+
+overrides:
+  - when: {ENV: production}
+    set:
+      common:
+        api: {url: https://kiosk.example.com, timeout: 10}

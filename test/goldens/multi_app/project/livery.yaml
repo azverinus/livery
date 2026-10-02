@@ -1,0 +1,13 @@
+version: 1
+
+defines:
+  APP: {values: [demo, kiosk], required: true}
+  ENV: {values: [dev, production], default: dev}
+
+app_pattern: config/apps/{APP}.yaml
+
+outputs:
+  android:
+    merge: [common, android]
+    include_defines: true
+    files: android/livery.properties

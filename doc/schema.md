@@ -48,6 +48,10 @@ livery uses the file passed with `--config`, or else looks for `livery.yaml` in 
 | `dart_defines_file` | string | none | A `Generated.xcconfig` to read define values from, relative to `root`. See [Define sources](#define-sources). |
 | `config` | mapping | empty | Config sections, see below. |
 | `overrides` | list | empty | Values that replace config values for some define values, see below. |
+| `config_file` | string | none | A file holding `config` and `overrides`, relative to the manifest. See [Config sources](#config-sources). |
+| `apps` | mapping | none | App names to config files, for a manifest that ships several apps. See [Multiple apps](#multiple-apps). |
+| `app_pattern` | string | none | A path template for the app config files, in place of `apps`. See [Multiple apps](#multiple-apps). |
+| `app_define` | string | `APP` | The define that selects the app. Only with `apps` or `app_pattern`. |
 | `outputs` | mapping | required | The files to generate, see below. At least one output is required. |
 
 ### `root`
@@ -185,6 +189,88 @@ Rules for overrides, checked for every override on every run, whether its select
 - Every key in `set` must exist in `config`, so a misspelt key fails instead of adding a stray one.
 - Every value in `set` must have the value type of the key it replaces. The error lists every offending key, and suggests the spelling where YAML is to blame: `2` over `1.5` suggests `2.0`.
 
+## Config sources
+
+The config comes from exactly one of these places:
+
+- **Inline**: `config` and `overrides` in the manifest. The simplest shape for one app.
+- **`config_file`**: `config` and `overrides` in a file of their own, so the manifest stays short as the values grow.
+- **`apps` or `app_pattern`**: one such file per app, see [Multiple apps](#multiple-apps).
+
+Combining them, such as `config` next to `config_file`, fails and names the keys that clash.
+
+```yaml
+# livery.yaml
+config_file: config/app.yaml
+```
+
+```yaml
+# config/app.yaml
+config:
+  common:
+    app_name: Demo
+overrides:
+  - when: {ENV: production}
+    set:
+      common: {app_name: Demo Pro}
+```
+
+A config file accepts only `config` and `overrides`, which work exactly as they do inline. An empty file fails, since it is more likely a wrong path or a forgotten file than an empty config.
+
+Paths to config files are relative to the manifest, not to `root`. livery trusts the paths you write in the manifest, so they may point anywhere, `..` included. Only the define values put into `app_pattern` are restricted, see below.
+
+A manifest may have no config at all. That is useful when outputs only include defines: an output with `merge: []` and `include_defines: true` needs no config. An output that merges a section still fails when the config does not define it.
+
+## Multiple apps
+
+One manifest can ship several apps that share a codebase, each with its own config file. A define, the **app define**, selects the app for a run. It is `APP` unless `app_define` names another one.
+
+List the apps and their files in `apps`:
+
+```yaml
+defines:
+  APP: {values: [demo, kiosk], required: true}
+
+apps:
+  demo: config/demo.yaml
+  kiosk: config/kiosk.yaml
+```
+
+Or give a path template in `app_pattern`, where `{NAME}` stands for the value of the define `NAME`:
+
+```yaml
+defines:
+  APP: {values: [demo, kiosk], required: true}
+  ENV: {values: [dev, production], default: dev}
+
+app_pattern: config/{ENV}/{APP}.yaml
+```
+
+```sh
+dart run livery -D APP=kiosk -D ENV=production   # reads config/production/kiosk.yaml
+```
+
+Each app file has the shape of a [`config_file`](#config-sources). The app define's value picks the app, matched exactly.
+
+Rules for the app define:
+
+- It must be declared under `defines` and must list its `values`: they are the apps.
+- It must be `required` or have a `default`, so a run always has an app.
+- With `apps`, the keys of `apps` must be exactly the app define's `values`.
+
+Rules for `app_pattern`:
+
+- It must contain the app define's placeholder, such as `{APP}`.
+- Every placeholder must name a declared define, and that define must have a value in the run.
+- A value put into the pattern must not contain `/`, `\` or `..`, so the pattern cannot reach another directory.
+
+Every run loads and checks every app, not only the one it builds, so a broken app file fails whichever app you build:
+
+- Every app file is checked like inline config, overrides included.
+- Every app must have the same keys, with the same value types, as the first app in the app define's `values`. That app is the reference for the shape, so keep it the canonical one. A mapping counts as a key too. The error lists, for each app that differs, the keys it lacks, the keys it adds and the keys whose value type differs.
+
+For `app_pattern`, every app means every value of the app define, with the other placeholders filled from the current run.
+
 ## `outputs`
 
 Each key of `outputs` names one output: the sections it merges, the format it is written in and the files it is written to.
@@ -210,7 +296,7 @@ A format can accept further keys, listed with the format.
 
 Rules for outputs:
 
-- Every section in `merge` must exist in `config`.
+- Every section in `merge` must exist in the config.
 - A key that two sections in `merge` both hold must have the same value type in both.
 - A path in `files` must be relative and must stay inside `root`, also after `..` segments are resolved.
 - Two outputs, or two entries of one output, cannot write the same path.

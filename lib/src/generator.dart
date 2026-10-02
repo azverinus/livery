@@ -31,14 +31,15 @@ List<GeneratedFile> generate(Manifest manifest, {required Map<String, String> de
       throw error.located(source: manifest.path, path: 'defines.${define.name}');
     }
   }
-  final sections = manifest.config.resolve(defines);
+  final config = manifest.configSource.select(defines);
+  final sections = config.resolve(defines);
   final files = <GeneratedFile>[];
   final firstWriter = <String, String>{};
   for (final output in manifest.outputs) {
     final String contents;
     try {
       contents = output.format.render(
-        entries: _entries(manifest.config.sections, sections, output),
+        entries: _entries(config.sections, sections, output),
         defines: defines,
         includeDefines: output.includeDefines,
       );
