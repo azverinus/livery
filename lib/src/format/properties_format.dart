@@ -41,16 +41,15 @@ final class PropertiesFormat extends OutputFormat<PropertiesOptions> {
     final buffer = StringBuffer(generatedHeader('#'));
     final firstSource = <String, String>{};
     for (final entry in input.entries) {
-      // A dot cannot be used from Gradle or Xcode variable syntax.
-      final key = _key(entry.path, input.options).replaceAll('.', '__');
+      final key = _key(entry.path, input.options);
       final previous = firstSource[key];
       if (previous != null) {
         throw LiveryException(
-          'config keys `$previous` and `${entry.path.join('.')}` both become `$key`; '
+          'config keys `$previous` and `${_describe(entry.path)}` both become `$key`; '
           'rename one of them or change `separator`',
         );
       }
-      firstSource[key] = entry.path.join('.');
+      firstSource[key] = _describe(entry.path);
 
       buffer
         ..write(_escape(key, isKey: true))
@@ -75,6 +74,10 @@ final class PropertiesFormat extends OutputFormat<PropertiesOptions> {
 
     return path.single;
   }
+
+  /// [path] as a dotted key path, quoting a segment that holds a dot itself.
+  static String _describe(List<String> path) =>
+      path.map((segment) => segment.contains('.') ? '"$segment"' : segment).join('.');
 
   /// `null` becomes empty and a list becomes comma-joined text.
   static String _stringify(Object? value) => switch (value) {

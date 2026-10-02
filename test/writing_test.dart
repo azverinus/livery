@@ -5,6 +5,7 @@ import 'package:test/test.dart';
 import 'support/test_project.dart';
 
 const _manifest = '''
+version: 1
 config:
   android: {a: b}
 outputs:

@@ -13,6 +13,7 @@ const _header =
 String _render(String config, {String output = ''}) {
   final project =
       TestProject.create()..writeManifest('''
+version: 1
 config:
 $config
 outputs:
@@ -98,6 +99,7 @@ outputs:
     test('accepts a single path and writes identical content to every listed file', () {
       final project =
           TestProject.create()..writeManifest('''
+version: 1
 config:
   android:
     a: b
@@ -144,6 +146,7 @@ outputs:
     test('flatten: false rejects a nested mapping', () {
       final project =
           TestProject.create()..writeManifest('''
+version: 1
 config:
 $nested
 outputs:
@@ -162,6 +165,7 @@ outputs:
     test('two keys that become the same key fail, naming both', () {
       final project =
           TestProject.create()..writeManifest('''
+version: 1
 config:
   android:
     app:
@@ -200,26 +204,29 @@ outputs:
   });
 
   group('escaping', () {
-    test('a dot in a key becomes `__`', () {
-      expect(_render('  android:\n    "a.b": c\n'), 'a__b=c\n');
+    test('a dot in a key is kept, so gradle.properties keys work', () {
+      expect(_render('  android:\n    "org.gradle.jvmargs": -Xmx4G\n'), 'org.gradle.jvmargs=-Xmx4G\n');
     });
 
-    test('a dot that collides with `__` fails', () {
+    test('a dotted key that collides with a nested key joined by `.` fails', () {
       final project =
           TestProject.create()..writeManifest('''
+version: 1
 config:
   android:
     "a.b": dotted
-    a__b: underscored
+    a:
+      b: nested
 outputs:
   android:
+    separator: "."
     files: [out.properties]
 ''');
 
       final result = project.run(const <String>[]);
 
       expect(result.exitCode, 1);
-      expect(result.err, contains('both become `a__b`'));
+      expect(result.err, contains('config keys `"a.b"` and `a.b` both become `a.b`'));
     });
 
     test('backslashes are doubled', () {

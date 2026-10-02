@@ -19,6 +19,7 @@ void main() {
     test('an unknown top-level key fails, naming it, the accepted keys and the file', () {
       final project =
           TestProject.create()..writeManifest('''
+version: 1
 config: {}
 outputs:
   android: {files: [a.properties]}
@@ -37,6 +38,7 @@ overides: []
 
     test('an unknown output key fails, naming the output path and the keys its format accepts', () {
       final err = _fail('''
+version: 1
 config:
   android: {a: b}
 outputs:
@@ -55,6 +57,7 @@ outputs:
 
     test('an unknown format fails, listing the known ones', () {
       final err = _fail('''
+version: 1
 config:
   android: {a: b}
 outputs:
@@ -69,30 +72,32 @@ outputs:
 
   group('shape', () {
     test('invalid YAML fails', () {
-      expect(_fail('config: [\n'), contains('invalid YAML'));
+      expect(_fail('version: 1\nconfig: [\n'), contains('invalid YAML'));
     });
 
     test('a manifest without outputs fails', () {
-      expect(_fail('config: {}\n'), contains('[outputs] the manifest declares no `outputs`'));
+      expect(_fail('version: 1\nconfig: {}\n'), contains('[outputs] the manifest declares no `outputs`'));
     });
 
     test('an output without files fails', () {
       expect(
-        _fail('outputs:\n  android: {}\n'),
+        _fail('version: 1\noutputs:\n  android: {}\n'),
         contains('[outputs.android.files] output `android` declares no `files`'),
       );
     });
 
     test('a config section that is not a mapping fails', () {
       expect(
-        _fail('config:\n  android: Demo\noutputs:\n  android: {files: [a.properties]}\n'),
+        _fail('version: 1\nconfig:\n  android: Demo\noutputs:\n  android: {files: [a.properties]}\n'),
         contains('[config.android] a config section must be a mapping'),
       );
     });
 
     test('a value of the wrong type fails with its path', () {
       expect(
-        _fail('config:\n  android: {a: b}\noutputs:\n  android: {files: [a.properties], flatten: yes please}\n'),
+        _fail(
+          'version: 1\nconfig:\n  android: {a: b}\noutputs:\n  android: {files: [a.properties], flatten: yes please}\n',
+        ),
         contains('[outputs.android.flatten] expected true or false, got `yes please`'),
       );
     });
@@ -101,6 +106,7 @@ outputs:
   test('merging a section the config does not define fails', () {
     expect(
       _fail('''
+version: 1
 config:
   common: {a: b}
 outputs:
@@ -115,6 +121,7 @@ outputs:
   test('two outputs writing the same path fail', () {
     expect(
       _fail('''
+version: 1
 config:
   android: {a: b}
   ios: {c: d}
@@ -130,6 +137,7 @@ outputs:
 
   group('output paths', () {
     String failWithPath(String path) => _fail('''
+version: 1
 config:
   android: {a: b}
 outputs:
@@ -153,6 +161,7 @@ outputs:
   test('a failing run writes nothing', () {
     final project =
         TestProject.create()..writeManifest('''
+version: 1
 config:
   android: {a: b}
 outputs:

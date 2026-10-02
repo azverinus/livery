@@ -42,7 +42,7 @@ livery uses the file passed with `--config`, or else looks for `livery.yaml` in 
 
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `version` | int | `1` | Manifest format version. Only `1` is supported. |
+| `version` | int | required | Manifest format version. Only `1` is supported. |
 | `root` | string | `.` | Directory that output paths resolve against, relative to the manifest. `--root` on the command line replaces it, resolved against the working directory. |
 | `config` | mapping | empty | Config sections, see below. |
 | `outputs` | mapping | required | The files to generate, see below. At least one output is required. |
@@ -105,11 +105,10 @@ Java-style `key=value` lines, as Gradle's `Properties` reads them. The file star
 
 Values are written as text. `null` becomes an empty value and a list becomes its items joined by commas.
 
-Keys and values are escaped so that `Properties.load` reads back exactly the configured text:
+Keys and values are escaped so that `Properties.load` reads back exactly the configured text. Dots in keys are kept, so `org.gradle.jvmargs` works in a `gradle.properties` output.
 
 | In | Written as |
 | --- | --- |
-| `.` in a key | `__` |
 | `\` | `\\` |
 | line feed, carriage return, tab, form feed | `\n`, `\r`, `\t`, `\f` |
 | space, `=`, `:` in a key | `\ `, `\=`, `\:` |

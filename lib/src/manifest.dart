@@ -24,7 +24,11 @@ class Manifest {
     }
 
     final reader = YamlReader.parse(content, source: path)..expectKeys(_keys);
-    final version = reader.child('version').asInt(orElse: supportedVersion);
+    final versionNode = reader.child('version');
+    if (versionNode.isNull) {
+      throw reader.error('the manifest declares no `version`; add `version: $supportedVersion`', at: 'version');
+    }
+    final version = versionNode.asInt(orElse: supportedVersion);
     if (version != supportedVersion) {
       throw reader.error(
         'unsupported manifest version $version, livery reads version $supportedVersion',

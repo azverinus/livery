@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 
 import 'support/test_project.dart';
 
-const _manifest = '''
+const _unversioned = '''
 config:
   android:
     app_name: Demo
@@ -10,6 +10,8 @@ outputs:
   android:
     files: [out/livery.properties]
 ''';
+
+const _manifest = 'version: 1\n$_unversioned';
 
 void main() {
   test('--help prints usage and exits 0', () {
@@ -110,13 +112,22 @@ void main() {
 
   group('version', () {
     test('1 is accepted', () {
-      final project = TestProject.create()..writeManifest('version: 1\n$_manifest');
+      final project = TestProject.create()..writeManifest(_manifest);
 
       expect(project.run(const <String>[]).exitCode, 0);
     });
 
+    test('is required', () {
+      final project = TestProject.create()..writeManifest(_unversioned);
+
+      final result = project.run(const <String>[]);
+
+      expect(result.exitCode, 1);
+      expect(result.err, contains('[version] the manifest declares no `version`; add `version: 1`'));
+    });
+
     test('any other version is an error', () {
-      final project = TestProject.create()..writeManifest('version: 2\n$_manifest');
+      final project = TestProject.create()..writeManifest('version: 2\n$_unversioned');
 
       final result = project.run(const <String>[]);
 
