@@ -12,6 +12,17 @@ final goldensDir = p.join('test', 'goldens');
 /// Set to `1` to rewrite every golden tree from the current output.
 const updateGoldensVariable = 'LIVERY_UPDATE_GOLDENS';
 
+/// Fixtures whose project is a directory of the repository instead of
+/// `<fixture>/project/`: the directory and the input files copied from it,
+/// relative to it, or `null` to copy the whole directory.
+///
+/// The example app lists its inputs, so files a local build left in it,
+/// generated ones included, never reach the run.
+final _repositoryProjects = <String, ({String dir, List<String>? inputs})>{
+  'example': (dir: 'example', inputs: <String>['livery.yaml']),
+  'example_multi_app': (dir: p.join('example', 'multi_app'), inputs: null),
+};
+
 /// One run of a golden fixture: the arguments it passes and the tree it is
 /// expected to generate.
 class GoldenRun {
@@ -32,7 +43,8 @@ class GoldenRun {
 ///
 /// A fixture is `<fixture>/project/`, copied into a scratch directory and run
 /// from its root, and the files every run generates. Input files are not part
-/// of an expected tree.
+/// of an expected tree. The projects of the example app take the place of
+/// `<fixture>/project/` for the fixtures in [_repositoryProjects].
 ///
 /// Without `<fixture>/runs.yaml` the fixture runs once with no arguments and
 /// `<fixture>/expected/` holds its files. `runs.yaml` maps case names to argument
@@ -55,7 +67,7 @@ List<GoldenRun> goldenRuns(String fixture) {
 /// checked-in golden tree.
 void expectGoldenRun(GoldenRun run) {
   final project = TestProject.create();
-  final inputs = _copyTree(p.join(goldensDir, run.fixture, 'project'), project.root);
+  final inputs = _copyInputs(run.fixture, project.root);
 
   final result = project.run(run.args);
   expect(result.exitCode, 0, reason: '$result');
@@ -80,13 +92,19 @@ void expectGoldenRun(GoldenRun run) {
   }
 }
 
-/// Copies [from] into [to], returning the copied files relative to [to].
-Set<String> _copyTree(String from, String to) {
+/// Copies the input files of [fixture] into [to], returning them relative to
+/// [to].
+Set<String> _copyInputs(String fixture, String to) {
+  final repositoryProject = _repositoryProjects[fixture];
+  final from = repositoryProject?.dir ?? p.join(goldensDir, fixture, 'project');
+  final inputs =
+      repositoryProject?.inputs ??
+      Directory(from).listSync(recursive: true).whereType<File>().map((file) => p.relative(file.path, from: from));
+
   final copied = <String>{};
-  for (final file in Directory(from).listSync(recursive: true).whereType<File>()) {
-    final relative = p.relative(file.path, from: from);
+  for (final relative in inputs) {
     final target = File(p.join(to, relative))..parent.createSync(recursive: true);
-    file.copySync(target.path);
+    File(p.join(from, relative)).copySync(target.path);
     copied.add(relative);
   }
 

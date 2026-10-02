@@ -25,6 +25,7 @@ defines:
   ENV:
     values: [dev, staging, production]
     default: dev
+  BUILD_TAG:
 
 config:
   common:
@@ -59,6 +60,7 @@ object LiveryConfig {
     enum class Env { DEV, STAGING, PRODUCTION }
 
     val ENV: Env = Env.DEV
+    val BUILD_TAG: String? = null
 
     const val APP_NAME: String = "Demo"
     const val APP_ID: String = "com.example.demo"
@@ -125,6 +127,7 @@ android {
         applicationIdSuffix = LiveryConfig.APP_ID_SUFFIX.ifEmpty { null }
         versionCode = LiveryConfig.VERSION_CODE
         versionName = flutter.versionName
+        versionNameSuffix = LiveryConfig.BUILD_TAG?.let { "-$it" }
         // ...
     }
 
@@ -140,6 +143,7 @@ android {
 
 - `applicationIdSuffix` is `null` when there is no suffix. A config value is a non-null `String`, so turn an empty suffix into `null` with `.ifEmpty { null }`: the build script then says "no suffix" the way AGP does, instead of relying on how AGP treats an empty one.
 - `versionCode` takes the `Int` as it is. Keep `version_code` an integer in YAML, `42` rather than `"42"`, or the build script will not compile.
+- `BUILD_TAG`, a define with no `default`, is a `String?` that is `null` when the run gave it no value, so the compiler makes the build script handle that case; here, with no suffix.
 - Defines with `values` are enum constants, so a branch on one is checked by the compiler:
 
   ```kotlin

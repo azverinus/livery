@@ -1,0 +1,3 @@
+dev: []
+staging: [-D, ENV=staging, -D, BUILD_TAG=rc1]
+production: [-D, ENV=production]

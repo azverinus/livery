@@ -1,0 +1,32 @@
+# Two apps from one codebase: `-D APP=demo` or `-D APP=kiosk` picks the config
+# file. Both files hold the same keys with the same value types, so the native
+# wiring and the Dart code of the example app work for either of them.
+#
+# In a real project this manifest sits at the root of the app, in place of a
+# single-app livery.yaml.
+version: 1
+
+defines:
+  APP:
+    values: [demo, kiosk]
+    required: true
+  ENV:
+    values: [dev, staging, production]
+    default: dev
+  BUILD_TAG:
+
+app_pattern: config/apps/{APP}.yaml
+
+outputs:
+  ios:
+    format: xcconfig
+    merge: [common, ios]
+    files: ios/Flutter/livery.xcconfig
+  android:
+    format: kotlin
+    merge: [common, android]
+    files: android/livery/src/main/kotlin/LiveryConfig.kt
+  dart:
+    format: dart
+    merge: [common, dart]
+    files: lib/src/app_config.g.dart

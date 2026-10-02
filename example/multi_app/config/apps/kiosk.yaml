@@ -1,0 +1,24 @@
+config:
+  common:
+    APP_NAME: Kiosk Dev
+  ios:
+    APP_BUNDLE_ID: dev.livery.kiosk.dev
+  android:
+    APP_ID: dev.livery.kiosk
+    APP_ID_SUFFIX: .dev
+    VERSION_CODE: 7
+    MINIFY: false
+  dart:
+    api:
+      url: https://dev.kiosk.example.com
+      # Kiosks sit on slow store networks.
+      timeout_seconds: 60
+
+# Kiosks have no staging build of their own: staging keeps the dev values.
+overrides:
+  - when: {ENV: production}
+    set:
+      common: {APP_NAME: Kiosk}
+      ios: {APP_BUNDLE_ID: dev.livery.kiosk}
+      android: {APP_ID_SUFFIX: "", MINIFY: true}
+      dart: {api: {url: https://kiosk.example.com}}

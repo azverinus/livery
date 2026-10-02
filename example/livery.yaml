@@ -1,0 +1,50 @@
+version: 1
+
+defines:
+  ENV:
+    values: [dev, staging, production]
+    default: dev
+  BUILD_TAG:
+
+config:
+  common:
+    APP_NAME: Livery Dev
+  ios:
+    APP_BUNDLE_ID: dev.livery.example.dev
+  android:
+    APP_ID: dev.livery.example
+    APP_ID_SUFFIX: .dev
+    VERSION_CODE: 3
+    MINIFY: false
+  dart:
+    api:
+      url: https://dev.api.example.com
+      timeout_seconds: 30
+
+overrides:
+  - when: {ENV: staging}
+    set:
+      common: {APP_NAME: Livery Staging}
+      ios: {APP_BUNDLE_ID: dev.livery.example.staging}
+      android: {APP_ID_SUFFIX: .staging}
+      dart: {api: {url: https://staging.api.example.com}}
+  - when: {ENV: production}
+    set:
+      common: {APP_NAME: Livery}
+      ios: {APP_BUNDLE_ID: dev.livery.example}
+      android: {APP_ID_SUFFIX: "", MINIFY: true}
+      dart: {api: {url: https://api.example.com, timeout_seconds: 10}}
+
+outputs:
+  ios:
+    format: xcconfig
+    merge: [common, ios]
+    files: ios/Flutter/livery.xcconfig
+  android:
+    format: kotlin
+    merge: [common, android]
+    files: android/livery/src/main/kotlin/LiveryConfig.kt
+  dart:
+    format: dart
+    merge: [common, dart]
+    files: lib/src/app_config.g.dart

@@ -1,0 +1,29 @@
+config:
+  common:
+    APP_NAME: Demo Dev
+  ios:
+    APP_BUNDLE_ID: dev.livery.demo.dev
+  android:
+    APP_ID: dev.livery.demo
+    APP_ID_SUFFIX: .dev
+    VERSION_CODE: 12
+    MINIFY: false
+  dart:
+    api:
+      url: https://dev.demo.example.com
+      timeout_seconds: 30
+
+overrides:
+  - when: {ENV: [staging, production]}
+    set:
+      dart: {api: {url: https://demo.example.com}}
+  - when: {ENV: staging}
+    set:
+      common: {APP_NAME: Demo Staging}
+      ios: {APP_BUNDLE_ID: dev.livery.demo.staging}
+      android: {APP_ID_SUFFIX: .staging}
+  - when: {ENV: production}
+    set:
+      common: {APP_NAME: Demo}
+      ios: {APP_BUNDLE_ID: dev.livery.demo}
+      android: {APP_ID_SUFFIX: "", MINIFY: true}

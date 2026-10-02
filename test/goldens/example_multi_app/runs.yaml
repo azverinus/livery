@@ -1,0 +1,2 @@
+demo: [-D, APP=demo]
+kiosk: [-D, APP=kiosk, -D, ENV=production]

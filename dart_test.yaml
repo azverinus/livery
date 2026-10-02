@@ -1,0 +1,5 @@
+tags:
+  # Builds the example's Android app. Needs Flutter on the PATH, a JDK and the
+  # Android SDK, and takes minutes.
+  gradle:
+    skip: Needs a JDK and the Android SDK. Run with `dart test --tags gradle --run-skipped`.
