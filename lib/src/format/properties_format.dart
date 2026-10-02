@@ -1,5 +1,6 @@
 import '../livery_exception.dart';
 import '../yaml_reader.dart';
+import 'key_value.dart';
 import 'output_format.dart';
 
 /// Options of a `properties` output.
@@ -40,7 +41,7 @@ final class PropertiesFormat extends OutputFormat<PropertiesOptions> {
   String render(RenderInput<PropertiesOptions> input) {
     final buffer = StringBuffer(generatedHeader('#'));
     final firstSource = <String, String>{};
-    for (final entry in input.entries) {
+    for (final entry in keyValuePayload(input)) {
       final key = _key(entry.path, input.options);
       final previous = firstSource[key];
       if (previous != null) {

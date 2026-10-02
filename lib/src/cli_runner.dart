@@ -1,6 +1,7 @@
 import 'package:args/args.dart';
 import 'package:path/path.dart' as p;
 
+import 'define_sources.dart';
 import 'generator.dart';
 import 'livery_exception.dart';
 import 'manifest.dart';
@@ -55,17 +56,32 @@ class CliRunner {
           help: 'Directory output paths resolve against. Defaults to the manifest `root`.',
           valueHelp: 'path',
         )
+        ..addMultiOption(
+          'define',
+          abbr: 'D',
+          // A value may hold a comma, so one option is always one pair.
+          splitCommas: false,
+          help: 'Define value, repeatable. Wins over every other source.',
+          valueHelp: 'KEY=VALUE',
+        )
+        ..addOption(
+          'dart-defines',
+          help: 'Encoded dart-defines as the Flutter tool passes them. Wins over \$$dartDefinesVariable.',
+          valueHelp: 'base64,...',
+        )
         ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this help.');
 
   /// Runs the command and returns its exit code.
   int run(List<String> args) {
     final parser = _parser();
     final ArgResults options;
+    final Map<String, String> assignments;
     try {
       options = parser.parse(args);
       if (options.rest.isNotEmpty) {
         throw FormatException('unexpected argument `${options.rest.first}`');
       }
+      assignments = parseAssignments(options.multiOption('define'));
     } on FormatException catch (error) {
       _err
         ..writeln(error.message)
@@ -86,7 +102,13 @@ class CliRunner {
 
     try {
       final manifest = Manifest.load(_manifestPath(options), explicitRoot: _absolute(options.option('root')));
-      write(generate(manifest));
+      final defineInput = collectDefineInput(
+        dartDefinesFile: manifest.dartDefinesFile,
+        environment: environment,
+        dartDefinesFlag: options.option('dart-defines'),
+        assignments: assignments,
+      );
+      write(generate(manifest, defineInput: defineInput));
 
       return success;
     } on LiveryException catch (error) {

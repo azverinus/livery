@@ -2,15 +2,23 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
+import 'define.dart';
 import 'format/formats.dart';
 import 'format/output_format.dart';
 import 'livery_exception.dart';
 import 'yaml_reader.dart';
 
-/// The parsed `livery.yaml`: where the config is and which outputs to
-/// generate.
+/// The parsed `livery.yaml`: the defines, where the config is and which
+/// outputs to generate.
 class Manifest {
-  const Manifest._({required this.path, required this.rootDir, required this.config, required this.outputs});
+  const Manifest._({
+    required this.path,
+    required this.rootDir,
+    required this.defines,
+    required this.dartDefinesFile,
+    required this.config,
+    required this.outputs,
+  });
 
   /// Reads and validates the manifest at the absolute [path].
   ///
@@ -37,10 +45,14 @@ class Manifest {
     }
 
     final root = reader.child('root').asStringOrNull() ?? '.';
+    final rootDir = explicitRoot ?? p.normalize(p.join(p.dirname(path), root));
+    final dartDefinesFile = reader.child('dart_defines_file').asStringOrNull();
 
     return Manifest._(
       path: path,
-      rootDir: explicitRoot ?? p.normalize(p.join(p.dirname(path), root)),
+      rootDir: rootDir,
+      defines: _parseDefines(reader.child('defines')),
+      dartDefinesFile: dartDefinesFile == null ? null : p.normalize(p.join(rootDir, dartDefinesFile)),
       config: _parseConfig(reader.child('config')),
       outputs: _parseOutputs(reader.child('outputs')),
     );
@@ -49,13 +61,20 @@ class Manifest {
   static const fileName = 'livery.yaml';
   static const supportedVersion = 1;
 
-  static const _keys = <String>{'version', 'root', 'config', 'outputs'};
+  static const _keys = <String>{'version', 'root', 'defines', 'dart_defines_file', 'config', 'outputs'};
 
   /// Absolute path of the manifest file.
   final String path;
 
   /// Absolute directory output paths resolve against.
   final String rootDir;
+
+  /// Declared defines, in declaration order.
+  final List<Define> defines;
+
+  /// Absolute path of the `Generated.xcconfig` define values are read from
+  /// first, or `null` when the manifest names none.
+  final String? dartDefinesFile;
 
   /// Section name to section contents.
   final Map<String, YamlTree> config;
@@ -78,6 +97,10 @@ class Manifest {
     }
   }
 
+  static List<Define> _parseDefines(YamlReader reader) => <Define>[
+    for (final name in reader.asMap().keys) Define.parse(name, reader.child(name)),
+  ];
+
   static Map<String, YamlTree> _parseConfig(YamlReader reader) => <String, YamlTree>{
     for (final name in reader.asMap().keys)
       name: switch (reader.child(name)) {
@@ -99,7 +122,13 @@ class Manifest {
 /// One entry under `outputs`: which sections to merge, in which format, into
 /// which files.
 class Output {
-  const Output._({required this.name, required this.merge, required this.files, required this.format});
+  const Output._({
+    required this.name,
+    required this.merge,
+    required this.files,
+    required this.includeDefines,
+    required this.format,
+  });
 
   factory Output._parse(String name, YamlReader reader) {
     final formatId = reader.child('format').asStringOrNull() ?? defaultFormatId;
@@ -119,12 +148,13 @@ class Output {
       name: name,
       merge: merge.isNull ? format.defaultMerge(name) : merge.asStringList(),
       files: files,
+      includeDefines: reader.child('include_defines').asBool(orElse: format.includesDefinesByDefault),
       format: format.bind(reader),
     );
   }
 
   /// Keys every output accepts, whatever its format.
-  static const _keys = <String>{'merge', 'format', 'files'};
+  static const _keys = <String>{'merge', 'format', 'files', 'include_defines'};
 
   final String name;
 
@@ -133,5 +163,8 @@ class Output {
 
   /// Destination paths as written in the manifest, relative to the root.
   final List<String> files;
+
+  /// Whether the output includes the defines, rendered the format's way.
+  final bool includeDefines;
   final BoundFormat<Object?> format;
 }

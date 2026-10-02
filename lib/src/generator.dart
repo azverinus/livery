@@ -16,17 +16,30 @@ class GeneratedFile {
   final String contents;
 }
 
-/// Renders every output of [manifest] without touching the disk.
+/// Renders every output of [manifest] without touching the disk, with the
+/// defines resolved from [defineInput], the merged input of every source.
 ///
-/// Everything that can fail on the manifest fails here, so a broken manifest
-/// never leaves a half-written set of files behind.
-List<GeneratedFile> generate(Manifest manifest) {
+/// Everything that can fail on the manifest or the define input fails here, so
+/// a failed generation never leaves a half-written set of files behind.
+List<GeneratedFile> generate(Manifest manifest, {required Map<String, String> defineInput}) {
+  final defines = <ResolvedDefine>[];
+  for (final define in manifest.defines) {
+    try {
+      defines.add(define.resolve(defineInput));
+    } on LiveryException catch (error) {
+      throw error.located(source: manifest.path, path: 'defines.${define.name}');
+    }
+  }
   final files = <GeneratedFile>[];
   final firstWriter = <String, String>{};
   for (final output in manifest.outputs) {
     final String contents;
     try {
-      contents = output.format.render(entries: _entries(manifest, output), defines: const <ResolvedDefine>[]);
+      contents = output.format.render(
+        entries: _entries(manifest, output),
+        defines: defines,
+        includeDefines: output.includeDefines,
+      );
     } on LiveryException catch (error) {
       throw error.located(source: manifest.path, path: 'outputs.${output.name}');
     }

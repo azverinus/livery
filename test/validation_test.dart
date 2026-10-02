@@ -32,7 +32,7 @@ overides: []
       expect(
         result.err,
         'livery: ${project.path('livery.yaml')}: [overides] unknown key `overides`, '
-        'accepted keys are config, outputs, root, version\n',
+        'accepted keys are config, dart_defines_file, defines, outputs, root, version\n',
       );
     });
 
@@ -50,7 +50,7 @@ outputs:
       expect(
         err,
         contains(
-          '[outputs.android.formt] unknown key `formt`, accepted keys are files, flatten, format, merge, separator',
+          '[outputs.android.formt] unknown key `formt`, accepted keys are files, flatten, format, include_defines, merge, separator',
         ),
       );
     });

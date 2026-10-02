@@ -28,13 +28,21 @@ class ResolvedDefine {
 
 /// Everything a format needs to render one output.
 class RenderInput<O> {
-  const RenderInput({required this.entries, required this.defines, required this.options});
+  const RenderInput({
+    required this.entries,
+    required this.defines,
+    required this.includeDefines,
+    required this.options,
+  });
 
   /// The merged sections, flattened to leaves in declaration order.
   final List<ConfigEntry> entries;
 
-  /// Every declared define.
+  /// Every declared define, in declaration order.
   final List<ResolvedDefine> defines;
+
+  /// Whether the output includes the defines, the output's `include_defines`.
+  final bool includeDefines;
 
   /// The output's options, as parsed by its format.
   final O options;
@@ -80,8 +88,13 @@ class BoundFormat<O> {
   final OutputFormat<O> format;
   final O options;
 
-  String render({required List<ConfigEntry> entries, required List<ResolvedDefine> defines}) =>
-      format.render(RenderInput<O>(entries: entries, defines: defines, options: options));
+  String render({
+    required List<ConfigEntry> entries,
+    required List<ResolvedDefine> defines,
+    required bool includeDefines,
+  }) => format.render(
+    RenderInput<O>(entries: entries, defines: defines, includeDefines: includeDefines, options: options),
+  );
 }
 
 /// The "generated, do not edit" header for a format whose comments start with

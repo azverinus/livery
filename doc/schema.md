@@ -1,6 +1,6 @@
 # Manifest reference
 
-livery reads one manifest, `livery.yaml`. It holds the config values and says which files to generate from them.
+livery reads one manifest, `livery.yaml`. It declares the defines a run takes, holds the config values and says which files to generate from them.
 
 ```yaml
 version: 1
@@ -43,7 +43,9 @@ livery uses the file passed with `--config`, or else looks for `livery.yaml` in 
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
 | `version` | int | required | Manifest format version. Only `1` is supported. |
-| `root` | string | `.` | Directory that output paths resolve against, relative to the manifest. `--root` on the command line replaces it, resolved against the working directory. |
+| `root` | string | `.` | Directory that output paths and `dart_defines_file` resolve against, relative to the manifest. `--root` on the command line replaces it, resolved against the working directory. |
+| `defines` | mapping | empty | The defines a run takes, see below. |
+| `dart_defines_file` | string | none | A `Generated.xcconfig` to read define values from, relative to `root`. See [Define sources](#define-sources). |
 | `config` | mapping | empty | Config sections, see below. |
 | `outputs` | mapping | required | The files to generate, see below. At least one output is required. |
 
@@ -55,6 +57,58 @@ Use `root` when the manifest does not live at the top of the project:
 # tools/livery.yaml
 root: ../app
 ```
+
+## `defines`
+
+A **define** is a named string input to a run, such as the environment you build for. Each key of `defines` declares one:
+
+```yaml
+defines:
+  ENV:
+    values: [dev, staging, production]
+    default: dev
+  FLAVOR: [free, paid]
+  BUILD_TAG:
+```
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `values` | list of strings | any value | The values the define accepts. |
+| `default` | string | none | The value used when no source gives one. Must be one of `values`. |
+| `required` | bool | `false` | Fail when no source gives a value and there is no default. |
+| `dart_class` | string | the define name in UpperCamel plus `Define` | Name of the enum the `dart` format generates for the define. |
+
+A bare list, like `FLAVOR` above, is shorthand for `values`. An empty entry, like `BUILD_TAG`, declares a free-form define that accepts any value.
+
+Define names and values are matched exactly, as `String.fromEnvironment` matches them in your app:
+
+- `ENV=DEV` fails for the `ENV` above, and the error lists the accepted values.
+- `env=dev` is not the define `ENV`, so it is ignored like any other undeclared input.
+
+A define that no source gives a value and that has no default stays unresolved. Outputs that include defines leave it out.
+
+### Define sources
+
+livery reads define values from the places you already pass them to Flutter. Values merge key by key from four sources, each later source winning:
+
+1. `dart_defines_file`: the `DART_DEFINES` line of a `Generated.xcconfig`, which `flutter build` writes with the `--dart-define` values it was given. A missing file is ignored.
+2. The `DART_DEFINES` environment variable, which Flutter sets for Xcode build phases.
+3. `--dart-defines <payload>` on the command line.
+4. `--define KEY=VALUE` (or `-D KEY=VALUE`) on the command line. It can be repeated, and its value is never split on commas.
+
+The first three take Flutter's encoding: `KEY=VALUE` pairs, each base64-encoded, joined by commas.
+
+```sh
+flutter build ios --config-only --dart-define=ENV=staging
+dart run livery                 # reads ENV=staging, with dart_defines_file: ios/Flutter/Generated.xcconfig
+dart run livery -D ENV=production
+```
+
+Rules for define input:
+
+- Keys the manifest does not declare are ignored, including the ones Flutter adds for itself.
+- Values are trimmed, and an empty value counts as absent, so `-D ENV=` falls back to the default even when an earlier source gave a value.
+- A value outside a define's `values`, or a missing `required` define, fails the run.
 
 ## `config`
 
@@ -81,6 +135,7 @@ outputs:
 | `merge` | list of strings | the section named after the output | Sections merged left to right. Nested mappings merge key by key; any other value, lists included, is replaced by a later section. |
 | `format` | string | `properties` | How the output is written. See [Formats](#formats). |
 | `files` | string or list of strings | required | Destination paths, relative to `root`. Every file gets the same content. |
+| `include_defines` | bool | per format | Include the resolved defines in the output. Each format renders them its own way, listed with the format. |
 
 A format can accept further keys, listed with the format.
 
@@ -117,10 +172,12 @@ Keys and values are escaped so that `Properties.load` reads back exactly the con
 
 Two config keys that end up as the same key, such as `app: {name: …}` next to `app_name: …`, fail generation instead of one silently replacing the other.
 
+`include_defines` is `false` by default. With `true`, every resolved define is written after the config as `NAME=value`, in declaration order; an unresolved define is left out. A define with the same name as a top-level key of the merged config fails generation.
+
 ## Exit codes
 
 | Code | Meaning |
 | --- | --- |
 | `0` | Success. |
-| `1` | The manifest is invalid, or a file could not be read or written. |
+| `1` | The manifest or a define value is invalid, or a file could not be read or written. |
 | `64` | Bad command line usage. |

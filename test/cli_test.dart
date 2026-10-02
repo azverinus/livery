@@ -21,6 +21,8 @@ void main() {
     expect(result.out, contains('Usage: livery'));
     expect(result.out, contains('--config'));
     expect(result.out, contains('--root'));
+    expect(result.out, contains('--define'));
+    expect(result.out, contains('--dart-defines'));
   });
 
   test('an unknown option exits 64 with usage', () {
