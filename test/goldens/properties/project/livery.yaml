@@ -1,0 +1,30 @@
+version: 1
+
+config:
+  common:
+    app_name: Demo App
+    api:
+      url: https://api.example.com
+      timeout: 30
+    feature_flags: [search, offline]
+  android:
+    app_id: com.example.demo
+    app_suffix: ""
+    version_code: 42
+    minify: true
+  gradle:
+    "org.gradle.jvmargs": -Xmx4G -XX:+UseParallelGC
+    signing:
+      store_file: C:\keys\release.jks
+      note: " starts with a space # and holds a hash"
+    empty: null
+
+outputs:
+  android:
+    merge: [common, android]
+    files:
+      - android/livery.properties
+      - android/app/livery.properties
+  gradle:
+    separator: "-"
+    files: android/gradle.livery.properties

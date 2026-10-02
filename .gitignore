@@ -6,3 +6,8 @@
 /CLAUDE.md
 /CONTEXT.md
 /CONTEXT-MAP.md
+
+# Dart tooling.
+.dart_tool/
+/build/
+/pubspec.lock
