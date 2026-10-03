@@ -190,11 +190,20 @@ A file whose content has not changed is not rewritten, so Xcode and Gradle do no
 
 livery ships an agent skill, `livery-setup`, that teaches a coding agent to set up livery in an existing Flutter app and to maintain it: it drafts `livery.yaml` from the project's current identity values, asks you for the defines rather than inventing them, wires iOS and Android by the guides' recipes, and later adds keys, defines, overrides and apps.
 
-Install it, at the version of livery your project depends on, from the app's directory:
+Install it, at the version of livery your project depends on, with the [`skills`](https://pub.dev/packages/skills) tool. Run it from the project root, or from the workspace root if the app is part of a pub workspace, so the skill lands next to your agent's other skills (for Claude Code, in `.claude/skills/`). With Dart 3.12 or later:
 
 ```sh
 dart run skills@ get
 ```
+
+`dart run <package>@` needs Dart 3.12. With Dart 3.10 or 3.11, activate the tool instead:
+
+```sh
+dart pub global activate skills
+skills get
+```
+
+The tool records what it installed in `.config/dart_skills/skills_config.json`. Commit it along with the skill if you keep your agent's config in git; otherwise, gitignore `.config/dart_skills/`.
 
 ## Documentation
 
