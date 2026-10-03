@@ -1,0 +1,32 @@
+name: Bug report
+description: livery does something wrong or fails.
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you ran, what you expected, and what you got instead, with the full error output.
+    validations:
+      required: true
+  - type: textarea
+    id: manifest
+    attributes:
+      label: Manifest
+      description: The smallest `livery.yaml` that shows the problem.
+      render: yaml
+  - type: input
+    id: livery-version
+    attributes:
+      label: livery version
+      placeholder: 1.0.0
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: The output of `flutter --version` (or `dart --version`) and your OS.
+      render: text
+    validations:
+      required: true

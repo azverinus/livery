@@ -1,0 +1,21 @@
+name: Feature request
+description: Something livery should do but doesn't.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What you are trying to do in your app, and why livery gets in the way today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: How you would like it to work, for example the manifest you would write.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Workarounds
+      description: What you do instead today, if anything.

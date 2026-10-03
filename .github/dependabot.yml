@@ -1,0 +1,23 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: ci
+      include: scope
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: pub
+    directory: /
+    schedule:
+      interval: monthly
+    # Widen a constraint only when a new release falls outside it, so users
+    # keep the lowest versions livery works with.
+    versioning-strategy: increase-if-necessary
+    commit-message:
+      prefix: build
+      include: scope

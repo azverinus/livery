@@ -9,6 +9,8 @@ import 'support/test_project.dart';
 /// The user docs a reader can land on, from pub.dev or from GitHub.
 final _docs = <String>[
   'README.md',
+  'CONTRIBUTING.md',
+  'SECURITY.md',
   'example/README.md',
   ...Directory('doc').listSync().whereType<File>().map((file) => file.path).where((path) => path.endsWith('.md')),
 ];

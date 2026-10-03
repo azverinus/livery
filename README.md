@@ -203,3 +203,7 @@ dart run skills@ get
 - [Android guide](doc/android.md): application id, version code and manifest placeholders from a Kotlin object.
 - [Dart guide](doc/dart.md): typed constants and define enums in the app.
 - [Example app](example/): a Flutter app with iOS, Android and Dart wired to livery, and a multi-app manifest.
+
+## Contributing
+
+Issues and pull requests are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md). Report security issues privately, as [SECURITY.md](SECURITY.md) describes.

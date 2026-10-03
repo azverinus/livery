@@ -1,0 +1,34 @@
+name: pr title
+
+# Pull requests are squash-merged and the title becomes the commit on main,
+# which release-please turns into the changelog line.
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  conventional:
+    name: conventional commit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            perf
+            refactor
+            test
+            docs
+            build
+            ci
+            chore
+          subjectPattern: ^[a-z0-9].*[^.]$
+          subjectPatternError: |
+            The summary "{subject}" must start with a lowercase letter or a digit
+            and must not end with a period.
