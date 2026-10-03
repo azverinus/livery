@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: dart-lang/setup-dart@v1
-      - run: dart pub get
+      - run: dart pub get --no-example
       - run: dart format --output=none --set-exit-if-changed .
       - run: dart analyze --fatal-infos
 
@@ -38,7 +38,7 @@ jobs:
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: ${{ matrix.sdk }}
-      - run: dart pub get
+      - run: dart pub get --no-example
       - run: dart test
 
   example:
@@ -72,5 +72,5 @@ jobs:
         with:
           channel: stable
           cache: true
-      - run: dart pub get
+      - run: dart pub get --no-example
       - run: dart test --tags gradle --run-skipped

@@ -7,8 +7,10 @@ Thanks for helping. Bug fixes, docs and tests are welcome as pull requests strai
 You need the Dart SDK (any version `pubspec.yaml` allows), and Flutter to work on the [example app](example/).
 
 ```sh
-dart pub get
+dart pub get --no-example
 ```
+
+Without `--no-example`, pub also resolves `example/`, which needs Flutter.
 
 ## Checks
 
