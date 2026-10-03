@@ -16,6 +16,9 @@ analyzer:
     dead_code: error
   exclude:
     - "build/**"
+    # A Flutter app with its own analysis options; analyzed with `flutter
+    # analyze` once livery has generated its config.
+    - "example/**"
 
 linter:
   rules:
